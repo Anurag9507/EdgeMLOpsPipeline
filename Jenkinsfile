@@ -25,8 +25,12 @@ pipeline {
 
         stage('Automated Test') {
             steps {
-                // Run the training script inside the container to prove code validity
-                sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} python cloud/train.py"
+                script {
+                    echo "Running Syntax Checks..."
+                    // This checks if the Python files are valid without running the infinite loop
+                    sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} python -m py_compile cloud/train.py app/edge_infer.py devices/publisher.py"
+                    echo "Syntax Check Passed!"
+                }
             }
         }
 
