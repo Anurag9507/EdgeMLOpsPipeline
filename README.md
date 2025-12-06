@@ -1,84 +1,113 @@
-# Miniature IoT MLOps Pipeline (Containerized)
+# IoT Edge MLOps Pipeline
 
-This project is a fully functional, miniature MLOps system for an IoT use case. It is fully containerized with Docker, making it portable, reproducible, and easy to run.
+This project is a fully automated, secure, and self-healing End-to-End MLOps Pipeline designed for Edge IoT scenarios. It demonstrates the complete lifecycle of data ingestion, drift detection, automatic retraining, and deployment using Kubernetes.
 
-The system demonstrates a complete, automated loop: data ingestion, edge inference, model drift detection, automated retraining, and live monitoring.
+## Key Features
 
-### Core Features
-- **Containerized Services:** All components (broker, publisher, inference, dashboard, MLflow) run as isolated services managed by Docker Compose.
-- **Resilient Startup:** Services use healthchecks to ensure they start in the correct order, preventing race conditions.
-- **Real-time Inference:** An edge service subscribes to sensor data via MQTT, makes predictions, and monitors its own performance (RMSE).
-- **Automated Drift Detection & Retraining:** If model performance degrades, the system automatically triggers a training script to create and deploy a new model.
-- **Experiment Tracking:** MLflow tracks training runs, parameters, metrics, and models.
-- **Live Dashboard:** A Streamlit dashboard provides a real-time view of the pipeline's health and live sensor data.
+*   **Orchestration:** Microservices (Broker, App, MLflow, ELK) running on Kubernetes (Minikube).
+*   **Security:** Sensitive configuration is encrypted using Ansible Vault.
+*   **Automation:**
+    *   **Makefile:** Streamlined one-command deployment and port forwarding.
+    *   **Jenkins:** CI/CD pipeline with automated testing, Vault decryption, and deployment.
+*   **Self-Healing AI:** The Edge Inference service detects model drift and triggers automatic retraining without human intervention.
+*   **Scalability:** Dedicated Horizontal Pod Autoscaling (HPA) configuration to handle load spikes.
+*   **Observability:**
+    *   **ELK Stack:** Centralized logging via Logstash (MQTT) to Elasticsearch and Kibana.
+    *   **MLflow:** Experiment tracking and model versioning.
+    *   **Streamlit:** Real-time dashboard for sensor data and prediction visualization.
 
----
+## Project Structure
 
-### Prerequisites
-- **Docker Desktop:** Must be installed and running.
-- **Git:** For cloning the repository.
-- A terminal or command prompt.
+*   **Makefile** - Automation script for deploying, checking status, and port forwarding.
+*   **ansible/**
+    *   **inventory.ini** - Localhost inventory definition.
+    *   **deploy.yml** - Main Playbook.
+    *   **secrets.yml** - Encrypted Vault file containing sensitive credentials.
+    *   **roles/** - Modular Ansible roles for infrastructure, apps, and monitoring.
+*   **k8s/**
+    *   **app-deployment.yaml** - Main Application Pod (Publisher, Inference, Dashboard).
+    *   **hpa.yaml** - Horizontal Pod Autoscaler configuration.
+    *   **elk-stack.yaml** - Elasticsearch and Kibana.
+    *   **logstash.yaml** - Custom Logstash deployment with MQTT support.
+    *   **mosquitto.yaml** - MQTT Broker.
+    *   **mlflow.yaml** - MLflow Tracking Server.
+*   **app/** - Edge Inference logic with Drift Detection.
+*   **cloud/** - Model training scripts.
+*   **dashboard/** - Streamlit visualization.
+*   **Jenkinsfile** - The CI/CD pipeline definition.
 
----
+## Prerequisites
 
-### Setup Instructions
+1.  Docker Engine & Minikube
+2.  Ansible (with kubernetes.core collection)
+3.  Make
+4.  Jenkins
 
-**1. Clone the Repository**
-```bash
-git clone https://github.com/YOUR_USERNAME/edge-mlops-mini.git
-cd edge-mlops-mini
-```
+## Quick Start (Makefile)
 
-**2. Create the Mosquitto Configuration**
-The MQTT broker requires a configuration file to allow connections from other containers.
+We have included a Makefile to automate the entire setup process.
 
-*   Create a new folder named `mosquitto` in the project root.
-*   Inside the `mosquitto` folder, create a new file named `mosquitto.conf`.
-*   Add the following two lines to `mosquitto.conf`:
-    ```
-    listener 1883 0.0.0.0
-    allow_anonymous true
-    ```
-
-**Your setup is complete!** The project is now ready to run.
-
----
-
-### How to Run the System
-
-The entire application is managed by Docker Compose.
-
-**Step 1: Launch All Services**
-
-Run the following command in your terminal from the project's root directory. The first time you run this, it will build the Docker image, which may take a few minutes.
+### 1. Start Infrastructure
+Ensure Minikube is running and memory is configured correctly for the ELK stack.
 
 ```bash
-docker-compose up --build
+minikube start --driver=docker --memory=4096 --cpus=2
+sudo sysctl -w vm.max_map_count=262144
 ```
 
-You will see logs from all five services starting up.
+### 2. Deploy and Run
+Run the following command to deploy the infrastructure and start port forwarding automatically.
 
-**Step 2: Train the First Model**
+```bash
+make up
+```
+*Note: The default Ansible Vault password for this project is `1234`.*
 
-The `edge_infer` service will not start making predictions until a model exists.
+### 3. Verification
+You can check the status of the pods using:
 
-1.  Let the main system run for about **30-60 seconds** so the publisher can generate some initial data in `data/raw.csv`.
-2.  Open a **second, new terminal window**.
-3.  In this new terminal, run the training script as a one-off task:
-    ```bash
-    docker-compose run --rm edge_infer python cloud/train.py
-    ```
-4.  This command will start a temporary container, run the training script, save a model to the `models/` directory, and then exit.
+```bash
+make status
+```
 
-**Step 3: Observe the Running System**
+## Security and Secrets
 
-Go back to your first terminal. You will see the `edge_infer` service logs change. It will detect the new model, load it, and begin printing real-time predictions.
+This project uses Ansible Vault to secure sensitive data.
+*   **Encrypted File:** `ansible/secrets.yml`
+*   **Local Usage:** The Makefile prompts for the password interactively.
+*   **CI/CD Usage:** The Jenkins pipeline decrypts the file automatically using the `VAULT_PASS` credential stored in the Jenkins Credential Store.
 
-*   **Live Dashboard:** Open your browser to **`http://localhost:8501`**
-*   **MLflow UI:** Open another browser tab to **`http://localhost:5001`**
+## Accessing the Services
 
-**To Stop Everything:**
-1. Press `Ctrl+C` in the terminal where the services are running.
-2. Run `docker-compose down` for a clean shutdown.
+If you used `make up`, the following services are available immediately:
 
----
+*   **Streamlit Dashboard:** http://localhost:8501
+*   **MLflow UI:** http://localhost:5001
+*   **Kibana (ELK):** http://localhost:5601
+
+## ELK Stack Configuration
+
+To view the logs in Kibana:
+1.  Navigate to http://localhost:5601
+2.  Go to **Stack Management** -> **Index Patterns**.
+3.  Create a new index pattern named: `edge-mlops-*`
+4.  Select `@timestamp` as the time field.
+5.  Go to the **Discover** tab to view live MQTT logs.
+
+## Jenkins Automation
+
+The CI/CD pipeline is defined in the `Jenkinsfile`.
+*   **Build:** Creates Docker images tagged with the specific Build Number.
+*   **Test:** Runs syntax and logic checks.
+*   **Push:** Uploads images to Docker Hub.
+*   **Security:** Decrypts Ansible Vault secrets securely.
+*   **Deploy:** Updates the Kubernetes cluster using the Ansible playbook.
+
+## Scalability
+
+Horizontal Pod Autoscaling is defined in `k8s/hpa.yaml`. It monitors the `spe-app` deployment and scales replicas between 1 and 5 based on CPU utilization (Target: 50%).
+
+You can verify the scaling status by running:
+```bash
+kubectl get hpa
+```
