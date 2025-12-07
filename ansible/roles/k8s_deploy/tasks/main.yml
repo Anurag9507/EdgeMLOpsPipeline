@@ -29,7 +29,6 @@
     state: present
     namespace: default
 
-# This task is required for the "Scalability" mark
 - name: Apply HPA (Scalability)
   kubernetes.core.k8s:
     src: ../k8s/hpa.yaml

@@ -81,13 +81,23 @@ pipeline {
         }
         success {
             mail to: 'anurag.ramaswamy.201344@gmail.com',
-                 subject: "SUCCESS: Build ${currentBuild.fullDisplayName}",
-                 body: "Good news! The build was successful.\n\nSee details here: ${env.BUILD_URL}"
+            subject: "Build #${env.BUILD_NUMBER} SUCCESS",
+            body: """\
+            BUILD SUCCESS!
+            Pipeline: ${env.JOB_NAME}
+            Build Number: ${env.BUILD_NUMBER}
+            URL: ${env.BUILD_URL}
+            """
         }
         failure {
             mail to: 'anurag.ramaswamy.201344@gmail.com',
-                 subject: "FAILURE: Build ${currentBuild.fullDisplayName}",
-                 body: "The build failed. Please check the logs.\n\nSee details here: ${env.BUILD_URL}"
+            subject: "Build #${env.BUILD_NUMBER} FAILURE",
+            body: """\
+            BUILD FAILURE!
+            Pipeline: ${env.JOB_NAME}
+            Build Number: ${env.BUILD_NUMBER}
+            URL: ${env.BUILD_URL}
+            """
         }
     }
 }

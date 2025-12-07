@@ -3,10 +3,10 @@
   hosts: localhost
   gather_facts: false
   
-  # SATISFIES "SECURE STORAGE" MARK
+  # For secure storage of sensitive data
   vars_files:
     - secrets.yml
 
-  # SATISFIES "MODULAR DESIGN" MARK
+  # For modular design
   roles:
     - k8s_deploy

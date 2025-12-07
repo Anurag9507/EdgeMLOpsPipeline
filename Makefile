@@ -1,9 +1,8 @@
 # Makefile for Edge MLOps Pipeline
 
-# 1. Deploy Infrastructure (Updated to fix Python Error)
+# 1. Deploy Infrastructure with Ansible
 deploy:
 	@echo "Deploying with Ansible (Enter Vault Password: 1234)..."
-	# The $$ below forces Ansible to use the 'venv' python, not the Mac system python
 	cd ansible && ansible-playbook -i inventory.ini deploy.yml --ask-vault-pass -e "ansible_python_interpreter=$$(which python)"
 
 # 2. Check Pod Status
@@ -25,5 +24,5 @@ stop-forward:
 	@echo "Stopping all port forwards..."
 	pkill -f "kubectl port-forward"
 
-# 5. One Command to Rule Them All
+# 5. One Command to Deploy and Forward
 up: deploy forward

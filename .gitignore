@@ -12,7 +12,7 @@ venv/
 mlruns/
 .mlflow-props
 
-# Data & Models (for this project, you might want to version them, but it's good practice to ignore large data)
+# Data & Models
 data/raw.csv
 app/state.json
 models/*.joblib
