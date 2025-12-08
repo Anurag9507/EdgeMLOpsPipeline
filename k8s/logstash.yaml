@@ -41,7 +41,7 @@ spec:
     spec:
       containers:
       - name: logstash
-        image: smoothlake67/logstash-mqtt:latest
+        image: DOCKER_USER_PLACEHOLDER/logstash-mqtt:latest
         resources:
           limits:
             memory: "1000Mi"

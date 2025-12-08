@@ -2,8 +2,10 @@ pipeline {
     agent any
 
     environment {
-        //Docker Hub Image Name
-        DOCKER_IMAGE = "smoothlake67/spe-mlops"
+        DOCKER_USER = "${env.MY_DOCKER_USER}" 
+        USER_EMAIL = "${env.MY_EMAIL}"
+        // Construct the image name dynamically
+        DOCKER_IMAGE = "${env.MY_DOCKER_USER}/spe-mlops"
         REGISTRY_CREDS = credentials('dockerhub-creds')
         // Vault Password for Automation
         VAULT_PASS = credentials('vault-pass-secret') 
@@ -62,18 +64,20 @@ pipeline {
         stage('Deploy to K8s') {
             steps {
                 script {
-                    echo "Deploying to Kubernetes..."
+                    echo "Deploying to Kubernetes..." 
+                    // 1. Swap the User Placeholder in ALL Yaml files
+                    sh "sed -i 's|DOCKER_USER_PLACEHOLDER|${DOCKER_USER}|g' k8s/*.yaml"
                     
-                    // 1. Update K8s manifest to use the new Build Number
+                    // 2. Update K8s manifest to use the new Build Number
                     sh "sed -i 's|:latest|:${BUILD_NUMBER}|g' k8s/app-deployment.yaml"
                     
-                    // 2. Create temporary Vault Password file for automation
+                    // 3. Create temporary Vault Password file
                     sh "echo '${VAULT_PASS}' > ansible/.vault_pass"
                     
-                    // 3. Run Ansible using the password file (Non-interactive mode)
+                    // 4. Run Ansible
                     sh "ansible-playbook -i ansible/inventory.ini ansible/deploy.yml --vault-password-file ansible/.vault_pass"
                     
-                    // 4. Cleanup password file
+                    // 5. Cleanup
                     sh "rm ansible/.vault_pass"
                 }
             }
@@ -87,7 +91,7 @@ pipeline {
             sh "docker rmi ${DOCKER_IMAGE}:latest || true"
         }
         success {
-            mail to: 'sanchit1472@gmail.com',
+            mail to: '${env.USER_EMAIL}',
             subject: "Build #${env.BUILD_NUMBER} SUCCESS",
             body: """\
             BUILD SUCCESS!
@@ -97,7 +101,7 @@ pipeline {
             """
         }
         failure {
-            mail to: 'sanchit1472@gmail.com',
+            mail to: '${env.USER_EMAIL}',
             subject: "Build #${env.BUILD_NUMBER} FAILURE",
             body: """\
             BUILD FAILURE!

@@ -20,7 +20,7 @@ spec:
       containers:
         # --- Edge Inference Service ---
         - name: edge-infer
-          image: smoothlake67/spe-mlops:latest
+          image: DOCKER_USER_PLACEHOLDER/spe-mlops:latest
           command: ["python", "app/edge_infer.py"]
           env:
             - name: MQTT_BROKER
@@ -39,7 +39,7 @@ spec:
 
         # --- Publisher Service ---
         - name: publisher
-          image: smoothlake67/spe-mlops:latest
+          image: DOCKER_USER_PLACEHOLDER/spe-mlops:latest
           command: ["python", "devices/publisher.py"]
           env:
             - name: MQTT_BROKER
@@ -58,7 +58,7 @@ spec:
 
         # --- Dashboard Service ---
         - name: dashboard
-          image: smoothlake67/spe-mlops:latest
+          image: DOCKER_USER_PLACEHOLDER/spe-mlops:latest
           command:
             [
               "streamlit",
