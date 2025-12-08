@@ -6,7 +6,7 @@ pipeline {
         DOCKER_IMAGE = "anurag9507/spe-mlops"
         REGISTRY_CREDS = credentials('dockerhub-creds')
         // Vault Password for Automation
-        VAULT_PASS = "1234" 
+        VAULT_PASS = credentials('vault-pass-secret') 
     }
 
     stages {
