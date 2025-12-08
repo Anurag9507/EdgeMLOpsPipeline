@@ -35,19 +35,19 @@ pipeline {
             steps {
                 script {
                     echo "Running Integrated Test Suite (Unit + Security)..."
+                    // Results will print directly to Jenkins Console.
                     sh """
                     docker run --rm \
-                    -v \$PWD:/reports \
                     ${DOCKER_IMAGE}:${BUILD_NUMBER} /bin/sh -c '
 
-                        echo "1. Running Unit Tests..." &&
+                        echo "--- 1. Running Unit Tests ---" &&
                         pytest tests/ &&
 
-                        echo "2. Running Security Scan (Bandit)..." &&
-                        bandit -r app/ cloud/ -f txt -o /reports/bandit-report.txt || true &&
+                        echo "--- 2. Running Security Scan (Bandit) ---" &&
+                        bandit -r app/ cloud/ -f screen || true &&
 
-                        echo "3. Running Dependency Check (Safety)..." &&
-                        safety check --full-report > /reports/safety-report.txt || true
+                        echo "--- 3. Running Dependency Check (Safety) ---" &&
+                        safety check || true
                     '
                     """
                 }
@@ -94,7 +94,6 @@ pipeline {
             // Clean up to save disk space
             sh "docker rmi ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
             sh "docker rmi ${DOCKER_IMAGE}:latest || true"
-            archiveArtifacts artifacts: '*.txt', fingerprint: true
         }
         success {
             mail to: "${env.USER_EMAIL}",
