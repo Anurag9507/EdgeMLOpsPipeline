@@ -21,14 +21,32 @@ pipeline {
             }
         }
 
-        stage('Automated Test') {
-            steps {
-                script {
-                    echo "Running Syntax Checks..."
-                    sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} python -m py_compile cloud/train.py app/edge_infer.py devices/publisher.py"
+        // stage('Automated Test') {
+        //     steps {
+        //         script {
+        //             echo "Running Syntax Checks..."
+        //             sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} python -m py_compile cloud/train.py app/edge_infer.py devices/publisher.py"
+        //         }
+        //     }
+        // }
+        stage('Robust Testing') {
+                    steps {
+                        script {
+                            echo "--- Phase 1: Unit & Integration Testing ---"
+                            // Runs the pytest file inside the container
+                            // This verifies logic in edge_infer.py and train.py
+                            sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} pytest tests/"
+                            
+                            echo "--- Phase 2: Security Vulnerability Scan ---"
+                            // 1. Bandit: Checks Python code for security issues (e.g. hardcoded passwords, unsafe subprocess)
+                            // The '|| true' ensures the pipeline reports issues but doesn't crash on warnings
+                            sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} bandit -r app/ cloud/ -f custom || true"
+                            
+                            // 2. Safety: Checks installed dependencies (requirements.txt) for known CVEs
+                            sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} safety check || true"
+                        }
+                    }
                 }
-            }
-        }
 
         stage('Push to Docker Hub') {
             steps {
