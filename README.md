@@ -109,5 +109,5 @@ Horizontal Pod Autoscaling is defined in `k8s/hpa.yaml`. It monitors the `spe-ap
 
 You can verify the scaling status by running:
 ```bash
-kubectl get hpa 
+kubectl get hpa
 ```
