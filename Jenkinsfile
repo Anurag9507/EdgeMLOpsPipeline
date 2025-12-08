@@ -31,24 +31,29 @@ pipeline {
         //         }
         //     }
         // }
-        stage('Robust Testing') {
-                    steps {
-                        script {
-                            echo "--- Phase 1: Unit & Integration Testing ---"
-                            // Runs the pytest file inside the container
-                            // This verifies logic in edge_infer.py and train.py
-                            sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} pytest tests/"
-                            
-                            echo "--- Phase 2: Security Vulnerability Scan ---"
-                            // 1. Bandit: Checks Python code for security issues (e.g. hardcoded passwords, unsafe subprocess)
-                            // The '|| true' ensures the pipeline reports issues but doesn't crash on warnings
-                            sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} bandit -r app/ cloud/ -f custom || true"
-                            
-                            // 2. Safety: Checks installed dependencies (requirements.txt) for known CVEs
-                            sh "docker run --rm ${DOCKER_IMAGE}:${BUILD_NUMBER} safety check || true"
-                        }
-                    }
+       stage('Robust Testing') {
+            steps {
+                script {
+                    echo "Running Integrated Test Suite (Unit + Security)..."
+                    sh """
+                    docker run --rm \
+                    -v \$PWD:/reports \
+                    ${DOCKER_IMAGE}:${BUILD_NUMBER} /bin/sh -c '
+
+                        echo "1. Running Unit Tests..." &&
+                        pytest tests/ &&
+
+                        echo "2. Running Security Scan (Bandit)..." &&
+                        bandit -r app/ cloud/ -f txt -o /reports/bandit-report.txt || true &&
+
+                        echo "3. Running Dependency Check (Safety)..." &&
+                        safety check --full-report > /reports/safety-report.txt || true
+                    '
+                    """
                 }
+            }
+        }
+
 
         stage('Push to Docker Hub') {
             steps {
@@ -89,6 +94,7 @@ pipeline {
             // Clean up to save disk space
             sh "docker rmi ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
             sh "docker rmi ${DOCKER_IMAGE}:latest || true"
+            archiveArtifacts artifacts: '*.txt', fingerprint: true
         }
         success {
             mail to: "${env.USER_EMAIL}",

@@ -6,108 +6,126 @@ This project is a fully automated, secure, and self-healing End-to-End MLOps Pip
 
 *   **Orchestration:** Microservices (Broker, App, MLflow, ELK) running on Kubernetes (Minikube).
 *   **Security:** Sensitive configuration is encrypted using Ansible Vault.
+*   **Collaboration:** Dynamic configuration allows multiple users to use the same pipeline with their own credentials.
 *   **Automation:**
-    *   **Makefile:** Streamlined one-command deployment and port forwarding.
-    *   **Jenkins:** CI/CD pipeline with automated testing, Vault decryption, and deployment.
+    *   **Makefile:** Streamlined commands for local development, building, and deployment.
+    *   **Jenkins:** CI/CD pipeline with Robust Testing (Unit + Security SAST), Vault decryption, and deployment.
 *   **Self-Healing AI:** The Edge Inference service detects model drift and triggers automatic retraining without human intervention.
 *   **Scalability:** Dedicated Horizontal Pod Autoscaling (HPA) configuration to handle load spikes.
-*   **Observability:**
-    *   **ELK Stack:** Centralized logging via Logstash (MQTT) to Elasticsearch and Kibana.
-    *   **MLflow:** Experiment tracking and model versioning.
-    *   **Streamlit:** Real-time dashboard for sensor data and prediction visualization.
+*   **Observability:** ELK Stack (Logging), MLflow (Experiments), Streamlit (Dashboard).
 
 ## Project Structure
 
-*   **Makefile** - Automation script for deploying, checking status, and port forwarding.
-*   **ansible/**
-    *   **inventory.ini** - Localhost inventory definition.
-    *   **deploy.yml** - Main Playbook.
-    *   **secrets.yml** - Encrypted Vault file containing sensitive credentials.
-    *   **roles/** - Modular Ansible roles for infrastructure, apps, and monitoring.
-*   **k8s/**
-    *   **app-deployment.yaml** - Main Application Pod (Publisher, Inference, Dashboard).
-    *   **hpa.yaml** - Horizontal Pod Autoscaler configuration.
-    *   **elk-stack.yaml** - Elasticsearch and Kibana.
-    *   **logstash.yaml** - Custom Logstash deployment with MQTT support.
-    *   **mosquitto.yaml** - MQTT Broker.
-    *   **mlflow.yaml** - MLflow Tracking Server.
-*   **app/** - Edge Inference logic with Drift Detection.
-*   **cloud/** - Model training scripts.
-*   **dashboard/** - Streamlit visualization.
-*   **Jenkinsfile** - The CI/CD pipeline definition.
+*   **Makefile**: Automation script for building, deploying, fixing config, and port forwarding.
+*   **ansible/**: Contains Modular Roles (`k8s_deploy`), Inventory, and Encrypted Secrets.
+*   **k8s/**: Kubernetes Manifests parameterized with placeholders for collaboration.
+*   **app/**: Edge Inference logic with Drift Detection.
+*   **cloud/**: Model training scripts.
+*   **tests/**: Unit and Integration tests (`test_core.py`).
+*   **Jenkinsfile**: The CI/CD pipeline definition.
+*   **.env**: Local user configuration (Git ignored).
 
 ## Prerequisites
 
-1.  Docker Engine & Minikube
-2.  Ansible (with kubernetes.core collection)
-3.  Make
-4.  Jenkins
+1.  Docker Engine and Minikube installed.
+2.  Ansible (with `kubernetes.core` collection installed).
+3.  Make tool.
+4.  Jenkins (Running locally on port 8080).
 
-## Quick Start (Makefile)
+## Initial Configuration (First Time Setup)
 
-We have included a Makefile to automate the entire setup process.
+To run this project, you must configure your local environment and Docker Hub registry.
+
+### 1. Docker Hub Setup
+You must have a repository on Docker Hub to store the artifacts.
+1.  Log in to Docker Hub.
+2.  Create a **Public Repository** named `spe-mlops`.
+
+### 2. Local Environment Configuration
+Create a file named `.env` in the root directory of the project. This file is ignored by Git to prevent conflicts.
+
+**File:** `.env`
+```
+DOCKER_USER=your_dockerhub_username
+USER_EMAIL=your_email@gmail.com
+```
+
+### 3. Jenkins Configuration
+For the CI/CD pipeline to function correctly, Jenkins requires global properties to identify the user.
+
+1.  Navigate to **Manage Jenkins** > **System**.
+2.  Scroll to **Global properties** and check **Environment variables**.
+3.  Add the following two variables:
+    *   **Name:** `MY_DOCKER_USER` | **Value:** `your_dockerhub_username`
+    *   **Name:** `MY_EMAIL` | **Value:** `your_email@gmail.com`
+4.  Click **Save**.
+
+### 4. Jenkins Credentials
+Navigate to **Manage Jenkins** > **Credentials** > **System** > **Global credentials** and add:
+1.  **ID:** `dockerhub-creds` (Username with Password for Docker Hub).
+2.  **ID:** `vault-pass-secret` (Secret Text). Enter the Ansible Vault password: `1234`.
+
+---
+
+## Execution Guide (Makefile)
+
+We utilize a Makefile to abstract complex commands. Run these commands from the project root.
 
 ### 1. Start Infrastructure
-Ensure Minikube is running and memory is configured correctly for the ELK stack.
+Ensure Minikube is running with sufficient resources to host the ELK stack.
 
 ```bash
-minikube start --driver=docker --memory=4096 --cpus=2
+minikube start --driver=docker --memory=6144 --cpus=4
 sudo sysctl -w vm.max_map_count=262144
 ```
 
-### 2. Deploy and Run
-Run the following command to deploy the infrastructure and start port forwarding automatically.
+### 2. Run the Pipeline
+Select the command appropriate for your workflow:
 
+**Option A: Full Build and Deploy**
+Builds the Docker image, pushes it to your registry, runs tests, and deploys to Kubernetes.
+```bash
+make buildtestup
+```
+
+**Option B: Quick Deploy**
+If the image is already on Docker Hub and you only need to provision the infrastructure.
 ```bash
 make up
 ```
-*Note: The default Ansible Vault password for this project is `1234`.*
 
-### 3. Verification
-You can check the status of the pods using:
-
+**Option C: Sync Jenkins Connectivity**
+If Jenkins fails to connect to Kubernetes after a Minikube restart, run this to sync the credentials.
 ```bash
-make status
+make fix-jenkins
 ```
 
-## Security and Secrets
-
-This project uses Ansible Vault to secure sensitive data.
-*   **Encrypted File:** `ansible/secrets.yml`
-*   **Local Usage:** The Makefile prompts for the password interactively.
-*   **CI/CD Usage:** The Jenkins pipeline decrypts the file automatically using the `VAULT_PASS` credential stored in the Jenkins Credential Store.
+---
 
 ## Accessing the Services
 
-If you used `make up`, the following services are available immediately:
+Once deployed, the Makefile automatically forwards ports. You can access the services at:
 
 *   **Streamlit Dashboard:** http://localhost:8501
+    *   *Displays real-time sensor data and drift status.*
 *   **MLflow UI:** http://localhost:5001
+    *   *Tracks model training runs and artifacts.*
 *   **Kibana (ELK):** http://localhost:5601
+    *   *Go to Stack Management > Index Patterns > Create pattern `edge-mlops-*` to view logs in Discover tab.*
 
-## ELK Stack Configuration
+## Validation of Advanced Features
 
-To view the logs in Kibana:
-1.  Navigate to http://localhost:5601
-2.  Go to **Stack Management** -> **Index Patterns**.
-3.  Create a new index pattern named: `edge-mlops-*`
-4.  Select `@timestamp` as the time field.
-5.  Go to the **Discover** tab to view live MQTT logs.
+*   **Scalability:** To verify Horizontal Pod Autoscaling (HPA) is active:
+    ```bash
+    kubectl get hpa
+    ```
+*   **Security:** To verify Ansible Vault encryption:
+    ```bash
+    cat ansible/secrets.yml
+    ```
+*   **Automation:** Push a change to GitHub to trigger the Jenkins Pipeline automatically via Webhook.
 
-## Jenkins Automation
+## Contributors
 
-The CI/CD pipeline is defined in the `Jenkinsfile`.
-*   **Build:** Creates Docker images tagged with the specific Build Number.
-*   **Test:** Runs syntax and logic checks.
-*   **Push:** Uploads images to Docker Hub.
-*   **Security:** Decrypts Ansible Vault secrets securely.
-*   **Deploy:** Updates the Kubernetes cluster using the Ansible playbook.
-
-## Scalability
-
-Horizontal Pod Autoscaling is defined in `k8s/hpa.yaml`. It monitors the `spe-app` deployment and scales replicas between 1 and 5 based on CPU utilization (Target: 50%).
-
-You can verify the scaling status by running:
-```bash
-kubectl get hpa
-```
+- **[IMT2022035 Sanchit Kumar Dogra:](https://github.com/meikenofdarth)** 
+- **[IMT2022103 Anurag Ramaswamy:](https://github.com/Anurag9507)** 
