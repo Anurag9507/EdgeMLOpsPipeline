@@ -92,7 +92,7 @@
 # safety==2.3.5
 # httpx==0.24.1
 
-# --- Core Application Dependencies (Pinned to your versions) ---
+# --- Core Application Dependencies ---
 alembic==1.16.5
 altair==5.5.0
 databricks-sdk==0.65.0
@@ -117,8 +117,8 @@ SQLAlchemy==2.0.43
 streamlit==1.49.1
 uvicorn==0.35.0
 
-# --- Testing & Security (The New Additions) ---
-# Unpinned or upgraded to resolve conflicts
+# --- Testing & Security  ---
+
 pytest
 pytest-mock
 bandit

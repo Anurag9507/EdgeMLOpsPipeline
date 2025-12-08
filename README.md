@@ -65,7 +65,12 @@ Navigate to **Manage Jenkins** > **Credentials** > **System** > **Global credent
 1.  **ID:** `dockerhub-creds` (Username with Password for Docker Hub).
 2.  **ID:** `vault-pass-secret` (Secret Text). Enter the Ansible Vault password: `1234`.
 
----
+### 5. Install Python Dependencies
+If you plan to run tests or scripts locally (outside of Docker), install the required Python libraries:
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Execution Guide (Makefile)
 

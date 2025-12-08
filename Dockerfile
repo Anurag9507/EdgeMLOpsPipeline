@@ -5,7 +5,6 @@ FROM python:3.11-slim
 # Stage 2: Set the working directory inside the container
 WORKDIR /app
 
-# --- THIS IS THE NEW LINE ---
 # Install the GNU OpenMP library, a system dependency for lightgbm
 RUN apt-get update && apt-get install -y libgomp1 curl && rm -rf /var/lib/apt/lists/*
 # Stage 3: Copy and install dependencies
